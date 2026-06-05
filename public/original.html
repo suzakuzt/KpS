@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图像对话生成工具</title>
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <div id="auth-screen" class="auth-screen is-hidden">
+    <div class="auth-card">
+      <p class="eyebrow">Access</p>
+      <h1 id="auth-title">请输入访问 Key</h1>
+      <div id="auth-linuxdo-section" class="auth-provider-section is-hidden">
+        <button id="auth-linuxdo-button" class="primary-button auth-submit" type="button">使用 Linux.do 登录</button>
+        <p class="meta-text">或使用已有访问 Key 继续登录</p>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <label class="field">
+          <span id="auth-field-label">访问 Key</span>
+          <input id="auth-password" type="password" autocomplete="current-password" placeholder="请输入访问 Key" />
+        </label>
+        <button id="auth-submit" class="primary-button auth-submit" type="submit">进入</button>
+        <p id="auth-error" class="auth-error is-hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-shell" class="app-shell">
+    <div class="app-bg-glow app-bg-glow-a"></div>
+    <div class="app-bg-glow app-bg-glow-b"></div>
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M12 3.2 4.5 7.4v9.2L12 20.8l7.5-4.2V7.4L12 3.2Z" />
+            <path d="M8.2 9.4 12 7.3l3.8 2.1v5.2L12 16.7l-3.8-2.1V9.4Z" />
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">AI Image Workspace</p>
+          <h1>图像对话</h1>
+          <p class="brand-subtitle">用自然语言，创造无限想象</p>
+        </div>
+      </div>
+      <nav class="top-nav" aria-label="主要功能">
+        <section class="mode-switch" aria-label="工作模式">
+          <button class="tab-button is-active" data-mode="generate" type="button">生成</button>
+          <button class="tab-button" data-mode="edit" type="button">编辑</button>
+          <button class="view-button" data-view="templates" type="button">模板库</button>
+          <button class="view-button" data-view="gallery" type="button">画廊</button>
+        </section>
+      </nav>
+      <div class="status-row">
+        <label class="compact-field model-field">
+          <span>模型</span>
+          <input id="model" name="image-model" type="text" placeholder="gpt-image-2" autocomplete="off" />
+        </label>
+        <span id="server-key-badge" class="badge badge-muted">检测中</span>
+        <button id="account-button" class="secondary-button admin-usage-button is-hidden" type="button">账户</button>
+        <button id="admin-usage-button" class="secondary-button admin-usage-button is-hidden" type="button">用量</button>
+        <button id="logout-button" class="profile-button" type="button" aria-label="登录">登录</button>
+      </div>
+    </header>
+
+    <main class="chat-shell">
+      <aside class="chat-sidebar" aria-label="会话历史">
+        <div class="sidebar-header">
+          <div>
+            <p class="sidebar-title">会话历史</p>
+            <p class="sidebar-subtitle">生成记录仅保存在浏览器本地</p>
+          </div>
+          <button id="history-toggle-button" class="icon-button history-toggle-button" type="button" aria-label="展开创作记录" aria-expanded="false">›</button>
+        </div>
+        <button id="new-chat-button" class="icon-text-button sidebar-action-button" type="button">新建创作</button>
+        <div id="history-list" class="history-list">
+          <button class="history-item is-active" type="button">
+            <span class="history-thumb history-thumb-placeholder"></span>
+            <span class="history-copy">
+              <span class="history-title">当前创作</span>
+              <span class="history-detail">草稿 · 未生成</span>
+              <span class="history-status">状态：编辑中</span>
+            </span>
+          </button>
+        </div>
+        <button id="clear-cache-button" class="danger-button" type="button">清空本地记录</button>
+      </aside>
+
+      <section class="chat-main" aria-label="图像生成对话">
+        <span id="request-status" class="sr-only" aria-live="polite"></span>
+
+        <div class="workspace-stage" data-view-panel="chat">
+          <div id="request-progress-shell" class="progress-shell is-hidden" aria-hidden="true">
+            <div id="request-progress-bar" class="progress-bar"></div>
+          </div>
+
+          <div id="error-box" class="error-box is-hidden"></div>
+
+          <section id="result-canvas" class="result-canvas" aria-label="生成结果画布">
+            <div id="result-canvas-grid" class="result-canvas-grid"></div>
+          </section>
+        </div>
+
+        <div class="composer-dock" data-view-panel="chat">
+          <form id="generate-form" class="composer-container" data-mode-panel="generate">
+            <div class="prompt-card">
+              <label class="sr-only" for="generate-prompt">输入你想要生成的画面</label>
+              <textarea id="generate-prompt" name="prompt" rows="1" placeholder="描述你想要生成的画面..."></textarea>
+              <div class="prompt-footer">
+                <div class="prompt-footer-left">
+                  <button class="action-pill prompt-optimize-button" type="button" data-optimize-target="generate">
+                    <svg viewBox="0 0 24 24"><path d="M9 21c0 .5.5 1 1 1h4c.5 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.5 1 1 1h6c.5 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7z"/></svg> 灵感提示
+                  </button>
+                </div>
+                <div class="prompt-footer-right">
+                  <div class="prompt-counter"><span id="generate-prompt-count">0</span> / 2000</div>
+                  <svg class="sparkle-icon" viewBox="0 0 24 24"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="parameter-card">
+              <div class="parameter-row" aria-label="生成参数">
+                <label class="compact-field setting-field">
+                  <span>尺寸</span>
+                  <select name="size">
+                    <option value="auto" selected>自动</option>
+                    <option value="1024x1024">1024 × 1024</option>
+                    <option value="1536x1024">1536 × 1024</option>
+                    <option value="1024x1536">1024 × 1536</option>
+                    <option value="2048x2048">2048 × 2048</option>
+                    <option value="2048x1152">2048 × 1152</option>
+                    <option value="3840x2160">3840 × 2160</option>
+                    <option value="2160x3840">2160 × 3840</option>
+                  </select>
+                </label>
+                <label class="compact-field setting-field">
+                  <span>质量</span>
+                  <select name="quality">
+                    <option value="auto" selected>自动</option>
+                    <option value="high">高</option>
+                    <option value="medium">中</option>
+                    <option value="low">低</option>
+                  </select>
+                </label>
+                <label class="compact-field setting-field">
+                  <span>格式</span>
+                  <select name="outputFormat">
+                    <option value="png" selected>PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WEBP</option>
+                  </select>
+                </label>
+              </div>
+              <div class="composer-actions">
+                <div class="count-control" aria-label="生成图片数量">
+                  <span>生成数量</span>
+                  <div class="count-group">
+                    <button class="count-option is-active" type="button" data-count-target="generate" data-count="1">1 张</button>
+                    <button class="count-option" type="button" data-count-target="generate" data-count="2">2 张</button>
+                    <button class="count-option" type="button" data-count-target="generate" data-count="4">4 张</button>
+                    <input class="count-input sr-only" name="n" type="number" min="1" max="4" value="1" />
+                  </div>
+                </div>
+                <div class="actions-right">
+                  <label class="share-toggle">
+                    <input type="checkbox" name="shareToGallery" value="true" />
+                    <span>分享至画廊</span>
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </label>
+                  <button id="generate-submit" class="primary-button magic-button" type="submit" aria-label="发送生成请求">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg> 生成图像
+                  </button>
+                </div>
+              </div>
+              <p class="composer-hint">图片生成通常需要 1-5 分钟，请耐心等待。</p>
+            </div>
+          </form>
+
+          <form id="edit-form" class="composer-container is-hidden" data-mode-panel="edit">
+            <div class="prompt-card">
+              <label class="sr-only" for="edit-prompt">输入你想要编辑的内容</label>
+              <textarea id="edit-prompt" name="prompt" rows="1" placeholder="上传参考图后，输入你想怎么改..."></textarea>
+              <div class="prompt-footer">
+                <div class="prompt-footer-left">
+                  <button class="action-pill prompt-optimize-button" type="button" data-optimize-target="edit">
+                    <svg viewBox="0 0 24 24"><path d="M9 21c0 .5.5 1 1 1h4c.5 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.5 1 1 1h6c.5 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7z"/></svg> 灵感提示
+                  </button>
+                  <label class="action-pill">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg> 参考图
+                    <input id="edit-images" name="images" type="file" accept="image/*" multiple class="sr-only" />
+                  </label>
+                  <label class="action-pill">
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 蒙版
+                    <input id="edit-mask" name="mask" type="file" accept="image/*" class="sr-only" />
+                  </label>
+                </div>
+                <div class="prompt-footer-right">
+                  <div class="prompt-counter"><span id="edit-prompt-count">0</span> / 2000</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-strip" id="image-preview-strip"></div>
+            <div class="preview-strip" id="mask-preview-strip"></div>
+
+            <div class="parameter-card">
+              <div class="parameter-row" aria-label="编辑参数">
+                <label class="compact-field setting-field">
+                  <span>尺寸</span>
+                  <select name="size">
+                    <option value="auto" selected>自动</option>
+                    <option value="1024x1024">1024 × 1024</option>
+                    <option value="1536x1024">1536 × 1024</option>
+                    <option value="1024x1536">1024 × 1536</option>
+                    <option value="2048x2048">2048 × 2048</option>
+                    <option value="2048x1152">2048 × 1152</option>
+                    <option value="3840x2160">3840 × 2160</option>
+                    <option value="2160x3840">2160 × 3840</option>
+                  </select>
+                </label>
+                <label class="compact-field setting-field">
+                  <span>质量</span>
+                  <select name="quality">
+                    <option value="auto" selected>自动</option>
+                    <option value="high">高</option>
+                    <option value="medium">中</option>
+                    <option value="low">低</option>
+                  </select>
+                </label>
+                <label class="compact-field setting-field">
+                  <span>格式</span>
+                  <select name="outputFormat">
+                    <option value="png" selected>PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WEBP</option>
+                  </select>
+                </label>
+              </div>
+              <div class="composer-actions">
+                <div class="count-control" aria-label="编辑图片数量">
+                  <span>生成数量</span>
+                  <div class="count-group">
+                    <button class="count-option is-active" type="button" data-count-target="edit" data-count="1">1 张</button>
+                    <button class="count-option" type="button" data-count-target="edit" data-count="2">2 张</button>
+                    <button class="count-option" type="button" data-count-target="edit" data-count="4">4 张</button>
+                    <input class="count-input sr-only" name="n" type="number" min="1" max="4" value="1" />
+                  </div>
+                </div>
+                <div class="actions-right">
+                  <label class="share-toggle">
+                    <input type="checkbox" name="shareToGallery" value="true" />
+                    <span>分享至画廊</span>
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </label>
+                  <button id="edit-submit" class="primary-button magic-button" type="submit" aria-label="发送编辑请求">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg> 开始编辑
+                  </button>
+                </div>
+              </div>
+              <p class="composer-hint">图片生成通常需要 1-5 分钟，请耐心等待。</p>
+            </div>
+          </form>
+        </div>
+
+        <div id="messages-scroll" class="messages-scroll is-hidden">
+          <div id="messages-list" class="messages-list"></div>
+        </div>
+
+        <section id="templates-view" class="library-view is-hidden" data-view-panel="templates" aria-label="模板库">
+          <div class="library-toolbar">
+            <div>
+              <h2>模板库</h2>
+              <p>保存可复用的提示词和参考图。</p>
+            </div>
+            <input id="template-search" class="library-search" type="search" placeholder="搜索模板、分类或提示词" />
+          </div>
+          <div id="template-category-list" class="chip-list"></div>
+          <div id="template-grid" class="template-grid"></div>
+          <div id="template-pagination" class="template-pagination"></div>
+        </section>
+
+        <section id="gallery-view" class="library-view is-hidden" data-view-panel="gallery" aria-label="公共画廊">
+          <div class="library-toolbar">
+            <div>
+              <h2>公共画廊</h2>
+              <p>只有主动选择分享的图片会显示在这里。</p>
+            </div>
+            <button id="refresh-gallery-button" class="secondary-button" type="button">刷新</button>
+          </div>
+          <div id="public-gallery-grid" class="public-gallery-grid"></div>
+          <div id="gallery-load-more" class="gallery-load-more"></div>
+        </section>
+      </section>
+
+      <aside class="gallery-rail" aria-label="本地图片">
+        <div class="gallery-header">
+          <div>
+            <p class="sidebar-title">本地图片</p>
+            <p class="sidebar-subtitle">当前仅保存在浏览器本地</p>
+          </div>
+        </div>
+        <div id="results-grid" class="results-grid"></div>
+        <section class="inspiration-panel" aria-label="画廊灵感">
+          <div class="inspiration-header">
+            <div>
+              <p class="sidebar-title">画廊灵感</p>
+              <p class="sidebar-subtitle">从画廊随机推荐</p>
+            </div>
+            <button id="shuffle-inspiration-button" class="text-button" type="button">换一批</button>
+          </div>
+          <div id="inspiration-grid" class="inspiration-grid"></div>
+          <button id="view-gallery-shortcut" class="secondary-button wide-button" type="button">查看全部画廊</button>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div id="preview-modal" class="preview-modal is-hidden" aria-hidden="true">
+    <div class="preview-dialog" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+      <div class="preview-dialog-header">
+        <p id="preview-title" class="preview-title">图片预览</p>
+        <div class="preview-header-actions">
+          <button id="preview-prev" class="secondary-button preview-nav-button" type="button">上一张</button>
+          <button id="preview-next" class="secondary-button preview-nav-button" type="button">下一张</button>
+          <button id="preview-close" class="icon-button" type="button" aria-label="关闭预览">×</button>
+        </div>
+      </div>
+      <div class="preview-stage">
+        <img id="preview-image" class="preview-stage-image" src="" alt="预览图" />
+      </div>
+      <div class="preview-dialog-footer">
+        <p id="preview-caption" class="meta-text"></p>
+        <div class="preview-footer-actions">
+          <button id="preview-copy-prompt" class="secondary-button" type="button">复制提示词</button>
+          <button id="preview-share" class="secondary-button" type="button">分享</button>
+          <button id="preview-download" class="download-button" type="button">下载</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-usage-modal" class="preview-modal admin-usage-modal is-hidden" aria-hidden="true">
+    <div class="admin-usage-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-usage-title">
+      <div class="preview-dialog-header">
+        <div>
+          <p id="admin-usage-title" class="preview-title">用量概览</p>
+          <p class="meta-text">管理员视图</p>
+        </div>
+        <div class="preview-header-actions">
+          <button id="admin-usage-refresh" class="secondary-button preview-nav-button" type="button">刷新</button>
+          <button id="admin-usage-close" class="icon-button" type="button" aria-label="关闭用量概览">×</button>
+        </div>
+      </div>
+      <div id="admin-usage-content" class="admin-usage-content"></div>
+    </div>
+  </div>
+
+  <div id="account-modal" class="preview-modal account-modal is-hidden" aria-hidden="true">
+    <div class="admin-usage-dialog account-dialog" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <div class="preview-dialog-header">
+        <div>
+          <p id="account-title" class="preview-title">账户额度</p>
+          <p class="meta-text">Linux.do 账户</p>
+        </div>
+        <div class="preview-header-actions">
+          <button id="account-refresh" class="secondary-button preview-nav-button" type="button">刷新</button>
+          <button id="account-close" class="icon-button" type="button" aria-label="关闭账户">×</button>
+        </div>
+      </div>
+      <div id="account-content" class="admin-usage-content"></div>
+    </div>
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+
+</html>
