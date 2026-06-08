@@ -56,6 +56,33 @@ OPENAI_API_KEY=your_gateway_key
 
 The helper also accepts per-call overrides such as `--backend`, `--base-url`, `--model`, `--image`, and `--action`.
 
+## Reusable Codex Skill
+
+This repo also exports the standalone skill at:
+
+```text
+skills/kps-codex-imagegen/
+```
+
+To install it for Codex on another machine or module, copy that folder into the Codex skills directory:
+
+```bash
+mkdir -p ~/.codex/skills
+cp -r skills/kps-codex-imagegen ~/.codex/skills/
+```
+
+Then invoke it in another Codex task with:
+
+```text
+Use $kps-codex-imagegen to generate a local image from this prompt: ...
+```
+
+The bundled skill script can also be called directly:
+
+```bash
+python ~/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --check-config
+```
+
 ## Production Build
 
 ```bash

@@ -1,0 +1,4 @@
+interface:
+  display_name: "KpS Codex Imagegen"
+  short_description: "Codex-backed reusable image generation"
+  default_prompt: "Use $kps-codex-imagegen to generate a local PNG image from this prompt."
