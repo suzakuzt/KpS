@@ -7,7 +7,7 @@ description: Use when a project or module needs reusable Codex-backed raster ima
 
 Use this skill to add or call the reusable KpS image generation helper from any project. It generates local raster files through the current Codex login by default, and can also call an external Responses-compatible gateway.
 
-Bundled script:
+Bundled script, relative to this skill directory:
 
 ```text
 scripts/generate_gateway_image.py
@@ -15,10 +15,19 @@ scripts/generate_gateway_image.py
 
 ## Direct Use
 
-Resolve the skill directory first, then run the bundled script from there:
+Resolve the skill directory first, then run the bundled script from there. Do not assume the KpS project path exists.
+
+PowerShell:
 
 ```powershell
-python C:/Users/tongzhu/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --check-config
+$skillDir = Join-Path $env:USERPROFILE ".codex\skills\kps-codex-imagegen"
+python (Join-Path $skillDir "scripts\generate_gateway_image.py") --check-config
+```
+
+Linux/macOS:
+
+```bash
+python ~/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --check-config
 ```
 
 The script is ready when `--check-config` prints non-secret JSON including:
@@ -40,13 +49,15 @@ Normal Codex login usage should show:
 Text to image:
 
 ```powershell
-python C:/Users/tongzhu/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --prompt "<prompt>" --out "<output.png>" --size 1024x1024
+$skillDir = Join-Path $env:USERPROFILE ".codex\skills\kps-codex-imagegen"
+python (Join-Path $skillDir "scripts\generate_gateway_image.py") --prompt "<prompt>" --out "<output.png>" --size 1024x1024
 ```
 
 Image editing with one or more references:
 
 ```powershell
-python C:/Users/tongzhu/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --prompt "<edit prompt>" --image "<reference.png>" --action edit --out "<output.png>" --size 1024x1024
+$skillDir = Join-Path $env:USERPROFILE ".codex\skills\kps-codex-imagegen"
+python (Join-Path $skillDir "scripts\generate_gateway_image.py") --prompt "<edit prompt>" --image "<reference.png>" --action edit --out "<output.png>" --size 1024x1024
 ```
 
 Useful flags:
@@ -61,6 +72,8 @@ Useful flags:
 - `--timeout 600`
 
 ## Add To Another Module
+
+If Codex cannot invoke `$kps-codex-imagegen`, first confirm this folder is installed at `~/.codex/skills/kps-codex-imagegen` for the same OS user that runs Codex. After installing or updating a skill, start a new Codex session or refresh the skill index; existing sessions may not see newly added skills.
 
 For an app repository that needs its own local copy:
 
@@ -128,8 +141,9 @@ If generation fails, read the JSON body before changing the prompt. For repeated
 Common local checks:
 
 ```powershell
-python C:/Users/tongzhu/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --check-config
-python C:/Users/tongzhu/.codex/skills/kps-codex-imagegen/scripts/generate_gateway_image.py --prompt "simple blue product photo" --out .imagegen/test-output.png --size 1024x1024
+$skillDir = Join-Path $env:USERPROFILE ".codex\skills\kps-codex-imagegen"
+python (Join-Path $skillDir "scripts\generate_gateway_image.py") --check-config
+python (Join-Path $skillDir "scripts\generate_gateway_image.py") --prompt "simple blue product photo" --out .imagegen/test-output.png --size 1024x1024
 ```
 
 Never print or commit `~/.codex/auth.json`, `.env`, tokens, cookies, or API keys.
